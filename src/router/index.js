@@ -31,16 +31,20 @@ export const createRouter = () => {
     ],
   });
 
-  router.beforeEach((to, from, next) => {
-    setTimeout(async () => {
-      console.log(to.matched);
-      console.log(
-        to.matched.length && to.matched[0].instances.default.serverPrefetch
-      );
-      if (to.matched.length && to.matched[0].instances.default.serverPrefetch) {
-        await to.matched[0].instances.default.serverPrefetch();
-      }
-    }, 100);
+  router.beforeEach(async (to, from, next) => {
+    const isMatched = to.matched.length;
+    const isComponent = to.matched.length && (typeof to.matched[0].components.default !== 'function');
+
+    if(isMatched){
+      let component = !isComponent
+        ? (await to.matched[0].components.default()).default
+        : to.matched[0].components.default
+
+      to.matched[0].components.default = component.serverPrefetch
+        ? WithPrefetch(component)
+        : component;
+    }
+    
     next();
   });
 
